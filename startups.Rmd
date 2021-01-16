@@ -1,0 +1,79 @@
+---
+title: "50 startups - profit influencing factors using linear regression"
+output: html_notebook
+---
+# Load libraries/[data](http://www.wawrowski.edu.pl/data/startups.xlsx)
+```{r}
+library(readxl)
+library(janitor)
+library(tidyverse)
+library(corrplot)
+
+startups <- read_xlsx("data/startups.xlsx") %>% 
+  clean_names(.)
+
+summary(startups)
+```
+
+# Initial data cleaning - removing rows with no data
+```{r}
+startups <- startups[startups$r_d_spend > 0,] %>% 
+  .[.$marketing_spend > 0,] %>% 
+  mutate(state = as.factor(state))
+```
+# Set out columns to loop over for scatter plots
+```{r message=TRUE}
+columns_to_plot <- startups %>% 
+  select(-profit, -state)
+
+print(names(columns_to_plot))
+```
+
+## Scatter plot of the above columns
+
+```{r}
+options(scipen = 10)
+
+for(factor_name in columns_to_plot){
+  print(ggplot(data = startups, aes(x=factor_name,
+                                    y=profit,
+                                    colour=state)) +
+          geom_point() +
+          geom_smooth(method=lm,
+                      aes(fill=state)))}
+```
+
+## Check correlations
+```{r}
+corr <- startups %>%
+  select(-state) %>% 
+  cor()
+
+corrplot(corr)
+```
+_r_d_spend_ and _marketing_spend_ are closely correlated.  
+
+
+# Prepare the intial model
+```{r}
+options(scipen = 30)
+
+model1 <- lm(data = startups, formula = profit ~ .,)
+
+summary(model1)
+```
+# Conclusion 
+While only _r_d_spend_ seems to be of most significance, as seen on above plots and model summary, it is also correlated with _marketing_spend_ closely. The former is of most influential factor on startup profits.
+
+## Prepare the final model, check significance
+```{r}
+startups_significant <- startups %>% 
+  select(r_d_spend, profit)
+
+model2 <- lm(data = startups_significant, formula = profit ~ r_d_spend)
+
+summary(model2)
+```
+
+
+
