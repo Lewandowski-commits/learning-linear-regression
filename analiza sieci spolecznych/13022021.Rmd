@@ -1,0 +1,287 @@
+---
+title: "igraph"
+author: "Michał Lewandowski"
+date: "16 01 2021"
+output: html_document
+---
+
+# Ładowanie biblioteki
+```{r}
+library(igraph)
+```
+
+```{r}
+g1 <- graph(edges = c(
+  1,2, 2,3, 3,4, 4,1),
+  directed = F)
+
+g2 <- graph(edges = c(
+  1,2, 2,3, 3,4, 4,1),
+  directed = T)
+
+g3 <- graph(edges = c(
+  1,2, 2,3, 3,4, 4,1),
+  directed = F,
+  n = 7)
+```
+
+```{r}
+plot(g1)
+plot(g2)
+plot(g3)
+```
+
+## Adjacency matrix
+```{r}
+g1[]
+g2[]
+g3[]
+```
+
+## Modyfikowanie wygladu grafów przy plotowaniu
+```{r}
+plot(g3, vertex.color="red",
+     vertex.size=25,
+     edge.color="green")
+```
+```{r}
+# informacje o vertices
+V(g3)
+# informacje o edges
+E(g3)$weight
+```
+
+
+## Nadawanie grafowi okreslonych atrybutow
+```{r}
+g3 <- set_edge_attr(g3,
+                    "weight",
+                    index = E(g3),
+                    value = c(2,4,5,7))
+
+g3 <- set_vertex_attr(g3, "gender", value = c("baba","chop","chop","baba","baba","baba","chop"))
+#lub szybciej
+
+auto_cat <- sample(rep(c("chop", "baba")), 7, replace=T)
+
+g3 <- set_vertex_attr(g3, "gender", value = auto_cat)
+
+g3 <- set_vertex_attr(g3, "age", value = c(53,23,68,31,43,51,11))
+
+plot(g3)
+
+
+get.edge.attribute(g3)
+get.vertex.attribute(g3)
+```
+## Uzywanie atrybutow do plotowania grafu
+```{r}
+plot(g3,
+     edge.width = E(g3)$weight)
+```
+# 2 forma wprowadzania dancyh
+```{r}
+g4 <- graph(edges = c(
+  "A","B", "B", "C", "C","D", "D","A"),
+  directed = F)
+
+g4 <- set_edge_attr(g4,
+                    "weight",
+                    index = E(g4),
+                    value = c(2,4,5,7))
+
+g4 <- set_vertex_attr(g4, "gender", value = auto_cat)
+
+g4 <- set_vertex_attr(g4, "age", value = c(53,23,68,31,43,51,11))
+
+plot(g4)
+```
+## Dodawanie wezlow do grafu
+```{r}
+g4 <- add_vertices(g4, 1, attr = list(name="E",
+                                      gender="chop",
+                                      age=12))
+
+plot(g4)
+```
+```{r}
+g4 <- add_edges(g4, edges = c("B","D", "A","E"), attr = list(weight = c(2,5)))
+
+plot(g4)
+```
+# 3 forma wprowadzania danych
+
+One mode network - wtedy macierz jest AxA, np. 4x4  
+Two mode network - wtedy macierz != AxA, np. 4x6
+
+```{r}
+
+matrix4graph <- matrix(data = 
+                         c(0,1,2,4,5,
+                           2,5,3,1,6,
+                           6,3,2,3,1,
+                           5,2,6,5,3,
+                           6,3,2,3,1),
+                       ncol = 5,
+                       nrow = 5,
+                       byrow = T,
+                       dimnames = list(LETTERS[1:5],
+                                       LETTERS[1:5]))
+
+g5 <- graph_from_adjacency_matrix(adjmatrix = matrix4graph,
+                                  weighted = T,
+                                  diag = F, #wentyl bezpieczenstwa na relacje self-loop, np. A do A
+                                  )
+
+plot(g5)
+```
+# 4 forma wprowadzania danych
+```{r}
+nodes <- data.frame(id = 1:5,
+                    name = LETTERS[1:5],
+                    age = c(15, 32, 95, 25, 19),
+                    gender = sample(rep(c("chop", "baba")),
+                                    5,
+                                    replace = T))
+
+edges <- data.frame(source=c("A", "C", "E"),
+                    target=c("B", "A", "D"),
+                    weight=c(2,5,3))
+
+g6 <- graph_from_data_frame(d = edges,
+                            directed = T,
+                            vertices = nodes$name) %>% 
+  set.vertex.attribute("age",
+                       value=nodes$age)
+plot(g6,
+     edge.width=E(g6)$weight)
+```
+
+# Wizualizacja
+```{r}
+library(GGally)
+library(network)
+library(sna)
+library(ggplot2)
+library(ggnetwork)
+```
+## Losowy graf
+```{r}
+graph1 <- rgraph(10, mode = "graph", tprob = 0.25)
+
+graph1
+```
+
+```{r}
+graph1 <- network(graph1, directed = F)
+
+network.vertex.names(graph1) = letters[1:10]
+
+ggnet2(graph1)
+```
+```{r}
+ggnet2(graph1, node.size = 5,
+       node.color = "red",
+       edge.color = "black",
+       )
+```
+```{r}
+ggnet2(graph1, size=5, color = rep(c("yellow","steelblue"),5))
+```
+
+```{r}
+ggnet2(graph1,
+       size=5,
+       color = rep(c("yellow","steelblue"),5),
+       mode = "kamadakawai")
+```
+## Kolor we wzgledu na kategorie
+```{r}
+graph1 %v% "gender" = ifelse(test = letters[1:10] %in% c("a","e","i"), yes = "female",no = "male")
+  
+ggnet2(graph1,
+       color="gender",
+       palette="Set2") 
+```
+
+## Rozmiar wezlow
+```{r}
+ggnet2(graph1,
+       size="gender",
+       size.palette = c("female"=50, "male"=20))
+
+ggnet2(graph1,
+       size="degree",
+       size.min = 2)
+```
+# Test na bazie danych
+
+```{r}
+vertices <- read.csv("data/vertices.csv", header=T, sep = ";")
+edges <- read.csv("data/edges.csv", header=T, sep = ";")
+
+net <- graph_from_data_frame(d = edges,
+                             directed = T,
+                             vertices = vertices)
+
+plot(net)
+```
+## Mierniki sieci
+
+### degree
+```{r}
+vertices$degreeIn <- igraph::degree(net, v=V(net)$Label, "in")
+
+vertices$degreeAll <- igraph::degree(net, v=V(net)$Label, "all")
+
+vertices$degreeOut <- igraph::degree(net, v=V(net)$Label, "out")
+```
+
+### density
+```{r}
+graph.density(graph = net, loops = F)
+```
+
+### reciprocity - miara wzajemnoci - global
+
+```{r}
+reciprocity(graph = net)
+```
+
+### gatekeeper - wskaznik posrednictwa - local
+
+```{r}
+vertices$betweenness <- igraph::betweenness(net,
+                                    v=V(net)$Label)
+```
+
+### test korelacji
+```{r}
+shapiro.test(vertices$betweenness)
+shapiro.test(vertices$degreeAll)
+
+cor.test(vertices$betweenness, vertices$degreeAll, method = "spearman")
+
+plot(vertices$betweenness, vertices$degreeAll)
+```
+```{r}
+centralization.betweenness(net)
+```
+### dyad census, konfiguracja powiazan miedzy wezlami - global
+
+```{r}
+igraph::dyad.census(net)
+```
+
+### wskaznik bliskosci - closeness - local/global
+```{r}
+vertices$closeness <- igraph::closeness(net, v=V(net)$Label, normalized=T)
+```
+
+### assortativity / homofilia - global
+```{r}
+igraph::assortativity_degree(net)
+
+igraph::assortativity_nominal(net, types = as.factor(vertices$club))
+```
+
